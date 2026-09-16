@@ -1,0 +1,68 @@
+#!/usr/bin/env bash
+# repo-report — which projects hold work that exists ONLY on this machine.
+#
+#   bin/repo-report [folder]        default: ~/Code
+#   bin/repo-report --csv [folder]  machine-readable
+#
+# Columns:
+#   DIRTY    uncommitted files
+#   UNPUSHED commits on no remote ("all" = the repo has no remote at all)
+#   STASHES  stashed changes
+#   LOCALBR  branches with no upstream
+# Anything non-zero would be lost by re-cloning instead of copying.
+set -uo pipefail
+
+CSV=0
+[ "${1:-}" = "--csv" ] && { CSV=1; shift; }
+ROOT="${1:-$HOME/Code}"
+[ -d "$ROOT" ] || { echo "no such folder: $ROOT" >&2; exit 2; }
+
+[ "$CSV" = 1 ] && echo "project,dirty,unpushed,stashes,local_branches,remote,last_commit,verdict" \
+               || printf "%-32s %6s %8s %7s %7s  %-28s %-10s %s\n" PROJECT DIRTY UNPUSH STASH LOCALBR REMOTE LAST VERDICT
+
+at_risk=0; total=0
+for dir in "$ROOT"/*/; do
+  name=$(basename "$dir")
+  if [ ! -d "$dir/.git" ]; then
+    contents=$(find "$dir" -maxdepth 1 -mindepth 1 2>/dev/null | wc -l | xargs)
+    [ "$contents" = 0 ] && continue
+    total=$((total+1)); at_risk=$((at_risk+1))
+    [ "$CSV" = 1 ] && echo "$name,,,,,not-a-git-repo,,COPY" \
+                   || printf "%-32s %6s %8s %7s %7s  %-28s %-10s %s\n" "${name:0:32}" - - - - "(not a git repo)" - COPY
+    continue
+  fi
+  total=$((total+1))
+  dirty=$(git -C "$dir" status --porcelain 2>/dev/null | wc -l | xargs)
+  stash=$(git -C "$dir" stash list 2>/dev/null | wc -l | xargs)
+  localbr=$(git -C "$dir" for-each-ref --format='%(refname:short) %(upstream)' refs/heads 2>/dev/null | awk 'NF==1' | wc -l | xargs)
+  remote=$(git -C "$dir" remote get-url origin 2>/dev/null | sed -E 's#^(git@|https://)([^:/]+)[:/]#\2/#; s/\.git$//')
+  if [ -n "$remote" ]; then
+    unpushed=$(git -C "$dir" log --branches --not --remotes --oneline 2>/dev/null | wc -l | xargs)
+  else
+    unpushed="all"; remote="(no remote)"
+  fi
+  last=$(git -C "$dir" log -1 --format=%cs 2>/dev/null)
+
+  verdict="clone"
+  if [ "$unpushed" != 0 ] || [ "$dirty" != 0 ] || [ "$stash" != 0 ] || [ "$localbr" != 0 ]; then
+    verdict="COPY"; at_risk=$((at_risk+1))
+  fi
+
+  if [ "$CSV" = 1 ]; then
+    echo "$name,$dirty,$unpushed,$stash,$localbr,$remote,$last,$verdict"
+  else
+    printf "%-32s %6s %8s %7s %7s  %-28s %-10s %s\n" "${name:0:32}" "$dirty" "$unpushed" "$stash" "$localbr" "${remote:0:28}" "$last" "$verdict"
+  fi
+done
+
+[ "$CSV" = 1 ] && exit 0
+cat <<TXT
+
+$total projects · $at_risk hold work that exists only here (COPY)
+
+  COPY   copy the folder; re-cloning would lose something
+  clone  clean and pushed — re-clone on the new Mac when you need it
+
+Also consider: archive old projects with unique work into .tar.gz instead of carrying them,
+and check for .env files and local databases, which are never in git.
+TXT

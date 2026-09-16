@@ -1,0 +1,6 @@
+# Global gitignore → ~/.config/git/ignore
+# Keep tool droppings out of every repo you work in. Worth migrating: without it,
+# files you never see on one Mac suddenly show up as untracked on the other.
+.DS_Store
+.idea/
+*.swp

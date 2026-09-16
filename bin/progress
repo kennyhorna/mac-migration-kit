@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+# progress — progress bars per phase from a PLAN.md written by bin/migrate.
+#
+#   bin/progress            bars per phase
+#   bin/progress --todo     also list the open tasks
+#   bin/progress PLAN.md    use a specific file
+#
+# Marks: [ ] open · [~] in progress · [x] done
+PLAN="${2:-${1:-PLAN.md}}"
+[ "$PLAN" = "--todo" ] && PLAN="PLAN.md"
+[ -f "$PLAN" ] || { echo "no $PLAN — run bin/migrate first" >&2; exit 2; }
+TODO=0
+[ "${1:-}" = "--todo" ] && TODO=1
+
+awk -v todo="$TODO" '
+  function flush() {
+    if (phase == "") return
+    pct = total ? int(done * 100 / total) : 0
+    bar = ""
+    for (i = 0; i < 20; i++) bar = bar (i < pct / 5 ? "#" : ".")
+    printf "%-46s [%s] %3d%%  %d/%d\n", substr(phase, 1, 46), bar, pct, done, total
+    printf "%s", open
+  }
+  /^## / { flush(); phase = substr($0, 4); done = 0; total = 0; open = "" }
+  /^- \[[ x~]\]/ {
+    total++
+    if ($0 ~ /^- \[x\]/) done++
+    else if (todo == 1) open = open "    " substr($0, 3) "\n"
+  }
+  END { flush() }
+' "$PLAN"
+
+awk '
+  /^- \[[ x~]\]/ { t++ }
+  /^- \[x\]/ { d++ }
+  END { printf "\nOverall: %d/%d (%d%%)\n", d, t, t ? d * 100 / t : 0 }
+' "$PLAN"

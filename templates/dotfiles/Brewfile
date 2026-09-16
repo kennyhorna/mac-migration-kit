@@ -1,0 +1,26 @@
+# Packages for a new Mac: brew bundle --file=~/.dotfiles/Brewfile
+# Generate a starting point on the old Mac: brew bundle dump --describe --file=Brewfile
+# Then CURATE it: a dump reflects years of experiments, and hand-installed apps are missing from it.
+
+# tap "some/tap"
+
+# --- CLI
+brew "git"
+brew "gh"
+brew "jq"
+brew "ripgrep"
+brew "mas"          # App Store apps
+# brew "dockutil"   # scripted Dock layout
+
+# --- toolchains (add only what you use)
+# brew "nvm"
+# brew "rustup"
+# brew "pyenv"
+
+# --- apps (hand-installed ones need `brew install --cask --adopt <name>` once)
+# cask "1password"
+# cask "visual-studio-code"
+# cask "docker-desktop"
+
+# --- App Store (ids from `mas list`)
+# mas "Xcode", id: 497799835

@@ -1,0 +1,14 @@
+# ~/.gitconfig → ~/.dotfiles/home/.gitconfig
+# Identity is machine/account specific: keep it here only if this repo is private,
+# otherwise set it with `git config --global user.email ...` on each machine.
+[user]
+	name = Your Name
+	email = you@example.com
+[init]
+	defaultBranch = main
+[push]
+	autoSetupRemote = true
+[pull]
+	rebase = true
+[core]
+	excludesfile = ~/.config/git/ignore

@@ -1,0 +1,13 @@
+# ~/.ssh/config → ~/.dotfiles/home/ssh-config
+# Safe to version: hostnames and key *names*, never private keys.
+
+# Example: a second account on the same host
+# Host github-personal
+#     HostName github.com
+#     User git
+#     IdentityFile ~/.ssh/id_ed25519_personal
+#     IdentitiesOnly yes
+
+# Using a password manager's SSH agent instead of key files:
+# Host *
+#     IdentityAgent "~/Library/Group Containers/<your-manager-agent-socket>"

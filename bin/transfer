@@ -1,0 +1,74 @@
+#!/usr/bin/env bash
+# transfer — copy a folder to the other Mac over SSH, avoiding the macOS copy pitfalls.
+#
+#   bin/transfer ~/Pictures user@169.254.x.y                 → ~/Pictures on the target
+#   bin/transfer ~/Code user@169.254.x.y Code/projects       → a different path on the target
+#   bin/transfer --code ~/Code user@169.254.x.y              → skips node_modules/vendor/build folders
+#   bin/transfer --dry-run ...                               → show size and file count only
+#   bin/transfer --cleanup                                   → how to remove the temporary access afterwards
+#
+# Uses a tar stream, which creates destination folders as it extracts. macOS's bundled rsync
+# silently copies NOTHING when the destination folder doesn't exist — and still exits 0.
+set -uo pipefail
+
+EXCLUDES=(--exclude .DS_Store --exclude .localized)
+CODE_MODE=0
+DRY=0
+
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --code) CODE_MODE=1; shift ;;
+    --dry-run) DRY=1; shift ;;
+    --cleanup)
+      cat <<'TXT'
+Remove the temporary transfer access when you're done:
+
+  # on the DESTINATION Mac
+  grep -v 'temporary migration key' ~/.ssh/authorized_keys > /tmp/ak && mv /tmp/ak ~/.ssh/authorized_keys
+  # then System Settings → General → Sharing → Remote Login: off
+
+  # on the SOURCE Mac
+  rm -f ~/.ssh/migration_transfer ~/.ssh/migration_transfer.pub
+TXT
+      exit 0 ;;
+    -h|--help) sed -n '2,12p' "$0"; exit 0 ;;
+    *) break ;;
+  esac
+done
+
+SRC="${1:-}"; REMOTE="${2:-}"; DEST="${3:-}"
+[ -n "$SRC" ] && [ -n "$REMOTE" ] || { sed -n '2,12p' "$0"; exit 2; }
+SRC="${SRC%/}"
+[ -d "$SRC" ] || { echo "no such folder: $SRC" >&2; exit 2; }
+DEST="${DEST:-$(basename "$SRC")}"
+
+if [ "$CODE_MODE" = 1 ]; then
+  EXCLUDES+=(--exclude node_modules --exclude .build --exclude DerivedData)
+  echo "note: top-level 'vendor' and 'target' folders are NOT excluded automatically —"
+  echo "      excludes match at every depth, which would drop tracked folders like public/vendor."
+fi
+
+size=$(du -sh "$SRC" 2>/dev/null | cut -f1)
+files=$(find "$SRC" -type f 2>/dev/null | wc -l | xargs)
+echo "source : $SRC ($size, $files files)"
+echo "target : $REMOTE:~/$DEST"
+
+if [ "$DRY" = 1 ]; then
+  echo "(dry run — nothing copied)"
+  exit 0
+fi
+
+ssh "$REMOTE" "mkdir -p \"\$HOME/$DEST\"" || { echo "cannot reach $REMOTE" >&2; exit 1; }
+
+start=$(date +%s)
+if COPYFILE_DISABLE=1 tar -cf - -C "$SRC" "${EXCLUDES[@]}" . \
+   | ssh "$REMOTE" "tar -xpf - -C \"\$HOME/$DEST\""; then
+  echo "copied in $(( $(date +%s) - start ))s"
+else
+  echo "transfer failed — safe to re-run, tar overwrites what it already sent" >&2
+  exit 1
+fi
+
+echo
+echo "now verify:"
+echo "  bin/verify-copy $SRC $REMOTE $DEST"

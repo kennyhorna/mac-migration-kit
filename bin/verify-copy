@@ -1,0 +1,142 @@
+#!/usr/bin/env python3
+"""
+verify-copy — prove a copy actually arrived.
+
+  bin/verify-copy ~/Pictures user@169.254.x.y Pictures
+  bin/verify-copy --git ~/Code user@169.254.x.y Code
+  bin/verify-copy --local ~/Pictures /Volumes/Drive/Pictures
+
+Compares files as SETS (never as sorted text: two Macs can sort filenames differently, which
+invents mismatches). --git additionally compares commit, branches, stashes and modified files
+for every repo in the folder.
+"""
+import argparse
+import os
+import subprocess
+import sys
+
+IGNORE = {".DS_Store", ".localized"}
+
+LIST_FILES = r'''cd %s 2>/dev/null || exit 1
+find . -type f %s -exec stat -f "%%z %%N" {} \;'''
+
+GIT_STATE = r'''cd %s 2>/dev/null || exit 1
+for d in */; do
+  [ -d "$d/.git" ] || continue
+  printf "### %%s\n" "${d%%/}"
+  git -C "$d" rev-parse HEAD 2>/dev/null
+  git -C "$d" stash list 2>/dev/null | wc -l | tr -d " "
+  git -C "$d" for-each-ref --format="%%(refname:short)" refs/heads 2>/dev/null | sort | tr "\n" ","
+  printf "\n"
+  git -C "$d" status --porcelain 2>/dev/null | sort
+done'''
+
+
+def run_local(script):
+    return subprocess.run(["/bin/sh", "-c", script], capture_output=True, text=True).stdout
+
+
+def run_remote(remote, script):
+    return subprocess.run(["ssh", remote, "/bin/sh"], input=script, capture_output=True, text=True).stdout
+
+
+def parse_files(raw):
+    out = {}
+    for line in raw.splitlines():
+        size, _, name = line.partition(" ")
+        if os.path.basename(name) in IGNORE:
+            continue
+        out[name] = size
+    return out
+
+
+def parse_git(raw):
+    repos, current = {}, None
+    for line in raw.splitlines():
+        if line.startswith("### "):
+            current = line[4:]
+            repos[current] = []
+        elif current is not None and os.path.basename(line.strip()) not in IGNORE:
+            repos[current].append(line)
+    return repos
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--git", action="store_true", help="also compare git state of every repo")
+    parser.add_argument("--local", action="store_true", help="destination is a local path, not user@host")
+    parser.add_argument("--exclude", action="append", default=[], help="skip paths containing this (repeatable)")
+    parser.add_argument("source")
+    parser.add_argument("target", help="user@host (or destination path with --local)")
+    parser.add_argument("path", nargs="?", help="path on the destination (relative to home)")
+    args = parser.parse_args()
+
+    source = os.path.expanduser(args.source.rstrip("/"))
+    prune = "".join(' -not -path "*/%s/*"' % e for e in args.exclude)
+    if args.local:
+        dest_label = args.target
+        fetch = lambda script: run_local(script % (shell_quote(args.target), prune))
+        fetch_git = lambda: run_local(GIT_STATE % shell_quote(args.target))
+    else:
+        dest_label = "%s:%s" % (args.target, args.path or os.path.basename(source))
+        remote_path = "$HOME/" + (args.path or os.path.basename(source))
+        fetch = lambda script: run_remote(args.target, script % (remote_path, prune))
+        fetch_git = lambda: run_remote(args.target, GIT_STATE % remote_path)
+
+    print("comparing\n  source: %s\n  target: %s\n" % (source, dest_label))
+
+    local_files = parse_files(run_local(LIST_FILES % (shell_quote(source), prune)))
+    remote_files = parse_files(fetch(LIST_FILES))
+    if not remote_files:
+        sys.exit("target listing is empty — nothing arrived, or the path is wrong")
+
+    missing = sorted(k for k in local_files if k not in remote_files)
+    mismatched = sorted(k for k in local_files if k in remote_files and local_files[k] != remote_files[k])
+    extra = sorted(k for k in remote_files if k not in local_files)
+
+    print("files: %d here, %d there" % (len(local_files), len(remote_files)))
+    print("  missing on target : %d" % len(missing))
+    for name in missing[:10]:
+        print("      " + name)
+    print("  size mismatches   : %d" % len(mismatched))
+    for name in mismatched[:10]:
+        print("      %s (%s vs %s)" % (name, local_files[name], remote_files[name]))
+    print("  only on target    : %d (fine if you added things there)" % len(extra))
+
+    problems = len(missing) + len(mismatched)
+
+    if args.git:
+        print()
+        local_repos = parse_git(run_local(GIT_STATE % shell_quote(source)))
+        remote_repos = parse_git(fetch_git())
+        print("git repos: %d here, %d there" % (len(local_repos), len(remote_repos)))
+        clean = True
+        for name, state in sorted(local_repos.items()):
+            other = remote_repos.get(name)
+            if other is None:
+                print("  ! %s missing on target" % name)
+                problems += 1
+                clean = False
+            elif state != other:
+                print("  ! %s differs" % name)
+                for line in [x for x in state if x not in other][:3]:
+                    print("      here : %s" % line)
+                for line in [x for x in other if x not in state][:3]:
+                    print("      there: %s" % line)
+                problems += 1
+                clean = False
+        if clean and local_repos:
+            print("  all repos identical (commit, branches, stashes, modified files)")
+
+    print()
+    if problems:
+        sys.exit("\033[31m%d problem(s)\033[0m — re-copy the gaps and run again" % problems)
+    print("\033[32mverified\033[0m — everything from the source is on the target with identical sizes")
+
+
+def shell_quote(path):
+    return "'" + path.replace("'", "'\\''") + "'"
+
+
+if __name__ == "__main__":
+    main()

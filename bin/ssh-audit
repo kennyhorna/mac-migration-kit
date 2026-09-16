@@ -1,0 +1,134 @@
+#!/usr/bin/env bash
+# ssh-audit — which SSH keys do you actually still use?
+#
+#   bin/ssh-audit                          test every key against GitHub and GitLab
+#   bin/ssh-audit --hosts user@host,user@host2   also probe servers you have access to
+#   bin/ssh-audit --no-network             local checks only
+#
+# Read-only: it authenticates, runs nothing remotely, and changes nothing.
+#
+# Why not file timestamps: macOS doesn't update access times reliably, so a key "last used in 2022"
+# may be in daily use. Only the server side knows.
+set -uo pipefail
+
+HOSTS=""; NETWORK=1
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --hosts) shift; HOSTS="$1"; shift ;;
+    --no-network) NETWORK=0; shift ;;
+    -h|--help) sed -n '2,9p' "$0"; exit 0 ;;
+    *) shift ;;
+  esac
+done
+
+cd "$HOME/.ssh" 2>/dev/null || { echo "no ~/.ssh"; exit 0; }
+KEYS=()
+for key in *; do
+  case "$key" in
+    *.pub|config|known_hosts*|authorized_keys|agent|*.sock) continue ;;
+  esac
+  [ -f "$key" ] && grep -q "PRIVATE KEY" "$key" 2>/dev/null && KEYS+=("$key")
+done
+[ ${#KEYS[@]} -eq 0 ] && { echo "no private keys in ~/.ssh (a password manager may hold them)"; exit 0; }
+
+echo "== keys in ~/.ssh"
+declare -a FINGERPRINTS
+for key in "${KEYS[@]}"; do
+  if fp=$(ssh-keygen -y -P '' -f "$key" 2>/dev/null | ssh-keygen -lf - 2>/dev/null | awk '{print $2}'); then
+    protection="no passphrase ⚠︎"
+  else
+    fp=$(ssh-keygen -lf "$key.pub" 2>/dev/null | awk '{print $2}')
+    protection="passphrase"
+  fi
+  FINGERPRINTS+=("$key $fp")
+  printf "  %-24s %-50s %s\n" "$key" "${fp:-unknown}" "$protection"
+done
+
+echo
+echo "== duplicates and dead references"
+awk '{print $2}' <<< "$(printf '%s\n' "${FINGERPRINTS[@]}")" | sort | uniq -d | while read -r dup; do
+  [ -n "$dup" ] && echo "  same key in: $(printf '%s\n' "${FINGERPRINTS[@]}" | awk -v d="$dup" '$2==d{printf "%s ", $1}')"
+done
+if [ -f config ]; then
+  grep -h -E '^\s*IdentityFile' config | awk '{print $2}' | sed "s|~|$HOME|" | while read -r ref; do
+    [ -f "${ref%.pub}" ] || echo "  ~/.ssh/config references a missing key: $ref"
+  done
+fi
+
+# keys served by an agent (e.g. a password manager) are usable without files
+if [ -n "${SSH_AUTH_SOCK:-}" ] && ssh-add -l >/dev/null 2>&1; then
+  echo
+  echo "== keys offered by your SSH agent"
+  ssh-add -l | awk '{printf "  %-50s %s\n", $2, $3}'
+fi
+
+[ "$NETWORK" = 0 ] && exit 0
+
+probe() {  # probe <key> <user@host>  → prints what the server said
+  timeout=12
+  perl -e "alarm $timeout; exec @ARGV" ssh -T -o BatchMode=yes -o IdentitiesOnly=yes -o IdentityAgent=none \
+      -o PreferredAuthentications=publickey -o ConnectTimeout=6 -F /dev/null \
+      -i "$HOME/.ssh/$1" "$2" 2>&1 | grep -v -i warning | head -1
+}
+
+echo
+echo "== git hosts (which account each key authenticates as)"
+for key in "${KEYS[@]}"; do
+  for host in git@github.com git@gitlab.com; do
+    out=$(probe "$key" "$host")
+    case "$out" in
+      *successfully*|*Welcome*) printf "  %-22s %-18s \033[32m%s\033[0m\n" "$key" "${host#git@}" "$out" ;;
+      *"Permission denied"*)    printf "  %-22s %-18s not accepted\n" "$key" "${host#git@}" ;;
+      *)                        printf "  %-22s %-18s %s\n" "$key" "${host#git@}" "${out:-no answer}" ;;
+    esac
+  done
+done
+
+if command -v gh >/dev/null && gh auth status >/dev/null 2>&1; then
+  echo
+  echo "== GitHub: registered keys and last use"
+  gh api user/keys 2>/dev/null | /usr/bin/python3 -c '
+import json,sys
+for k in json.load(sys.stdin):
+    print("  %-40s last used: %s" % (k.get("title","")[:40], (k.get("last_used") or "never")[:10]))' 2>/dev/null
+fi
+if command -v glab >/dev/null && glab auth status >/dev/null 2>&1; then
+  echo
+  echo "== GitLab: registered keys and last use"
+  glab api user/keys 2>/dev/null | /usr/bin/python3 -c '
+import json,sys
+for k in json.load(sys.stdin):
+    print("  %-40s last used: %s" % (k.get("title","")[:40], (k.get("last_used_at") or "never")[:10]))' 2>/dev/null
+fi
+
+if [ -n "$HOSTS" ]; then
+  echo
+  echo "== servers"
+  echo "  (offering all keys in one connection, then repeating without the accepted one,"
+  echo "   so failed attempts stay low — some servers ban repeated failures)"
+  IFS=',' read -ra TARGETS <<< "$HOSTS"
+  for target in "${TARGETS[@]}"; do
+    remaining=("${KEYS[@]}"); accepted=()
+    for _ in 1 2 3; do
+      [ ${#remaining[@]} -eq 0 ] && break
+      args=(); for k in "${remaining[@]}"; do args+=(-i "$HOME/.ssh/$k"); done
+      out=$(perl -e 'alarm 25; exec @ARGV' ssh -v -T -o BatchMode=yes -o IdentitiesOnly=yes -o IdentityAgent=none \
+            -o PreferredAuthentications=publickey -o ConnectTimeout=8 -F /dev/null "${args[@]}" "$target" true 2>&1)
+      key=$(sed -nE "s#.*Server accepts key: $HOME/\.ssh/([^ ]+).*#\1#p" <<< "$out" | head -1)
+      if [ -n "$key" ] && grep -q "Authenticated to" <<< "$out"; then
+        accepted+=("$key")
+        new=(); for k in "${remaining[@]}"; do [ "$k" != "$key" ] && new+=("$k"); done; remaining=("${new[@]}")
+        sleep 1
+      else
+        break
+      fi
+    done
+    printf "  %-32s accepts: %s\n" "$target" "${accepted[*]:-none}"
+  done
+fi
+
+cat <<'TXT'
+
+Reading this: a key accepted nowhere, with no recent use, is a candidate to retire.
+Move retired keys to a backup folder first; delete them only once the new Mac has run for a while.
+TXT

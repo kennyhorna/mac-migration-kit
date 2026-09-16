@@ -1,0 +1,63 @@
+#!/usr/bin/env bash
+# link — symlink files from this repo into place. Dry run unless --apply.
+#
+#   bin/link            show what would change
+#   bin/link --apply    do it, backing up anything it replaces
+#   bin/link --only zsh only entries in that group
+set -euo pipefail
+
+DOTFILES="${DOTFILES:-$HOME/.dotfiles}"
+BACKUP="$HOME/.dotfiles-backups/link/$(date +%Y%m%d-%H%M%S)"
+APPLY=0; ONLY=()
+
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --apply) APPLY=1 ;;
+    --only) shift; ONLY+=("$1") ;;
+    -h|--help) sed -n '2,7p' "$0"; exit 0 ;;
+    *) echo "unknown option: $1" >&2; exit 2 ;;
+  esac
+  shift
+done
+
+# group | source (in the repo) | target
+LINKS="
+zsh  | home/.zshrc     | $HOME/.zshrc
+git  | home/.gitconfig | $HOME/.gitconfig
+git  | home/gitignore  | $HOME/.config/git/ignore
+ssh  | home/ssh-config | $HOME/.ssh/config
+"
+
+changes=0
+while IFS='|' read -r group src target; do
+  group="$(echo "$group" | xargs)"; src="$(echo "$src" | xargs)"; target="$(echo "$target" | xargs)"
+  [ -z "$group" ] && continue
+  if [ ${#ONLY[@]} -gt 0 ] && [[ ! " ${ONLY[*]} " =~ " $group " ]]; then continue; fi
+
+  source_path="$DOTFILES/$src"
+  label="${target/#$HOME/~}"
+  [ -e "$source_path" ] || { echo "  ! $label: $src missing in the repo"; continue; }
+  if [ -L "$target" ] && [ "$(readlink "$target")" = "$source_path" ]; then
+    echo "  = $label"; continue
+  fi
+
+  if [ -L "$target" ]; then state="link → $(readlink "$target")"
+  elif [ -e "$target" ]; then state="existing file, will be backed up"
+  else state="missing"; fi
+  echo "  ~ $label ($state) → $src"
+  changes=$((changes + 1))
+
+  [ "$APPLY" = 1 ] || continue
+  mkdir -p "$(dirname "$target")"
+  if [ -e "$target" ] || [ -L "$target" ]; then
+    mkdir -p "$BACKUP/$(dirname "${target#$HOME/}")"
+    mv "$target" "$BACKUP/${target#$HOME/}"
+  fi
+  ln -s "$source_path" "$target"
+done <<< "$LINKS"
+
+if [ "$APPLY" = 1 ]; then
+  if [ "$changes" -gt 0 ]; then echo "$changes link(s) created; backups in ${BACKUP/#$HOME/~}"; else echo "0 link(s) created"; fi
+else
+  echo "$changes link(s) pending (dry run, use --apply)"
+fi

@@ -1,0 +1,234 @@
+#!/usr/bin/env python3
+"""
+migrate — interactive planner. Asks what you use, writes a PLAN.md with only the steps that apply.
+
+  bin/migrate                 ask questions, write PLAN.md
+  bin/migrate --answers a.json   reuse saved answers (written to .migration-answers.json each run)
+  bin/migrate --all           include every module, ask nothing (a superset plan)
+  bin/migrate --out FILE      write somewhere else than ./PLAN.md
+
+Answers are saved so you can re-run after changing your mind, and so an agent can replay them.
+"""
+import argparse
+import json
+import os
+import re
+import sys
+
+HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+TASKS = os.path.join(HERE, "tasks")
+
+# question id -> (prompt, [(option value, label)], multi?)
+QUESTIONS = [
+    ("transport", "How will you move the data?", [
+        ("cable", "USB-C / Thunderbolt cable between the Macs (recommended)"),
+        ("network", "Over the network (same Wi-Fi/LAN)"),
+        ("drive", "External drive"),
+    ], False),
+    ("secrets", "How do you keep secrets and SSH keys?", [
+        ("manager", "Password manager with an SSH agent"),
+        ("files", "Plain SSH key files + Keychain"),
+    ], False),
+    ("dotfiles", "Dotfiles repository?", [
+        ("existing", "I already have one"),
+        ("new", "I want to start one during the migration"),
+        ("none", "No dotfiles repo"),
+    ], False),
+    ("shell", "Which shell?", [("zsh", "zsh"), ("fish", "fish"), ("bash", "bash")], False),
+    ("packages", "Package managers in use", [
+        ("brew", "Homebrew"),
+        ("mas", "Mac App Store apps (mas)"),
+    ], True),
+    ("languages", "Language toolchains you need", [
+        ("node", "Node"), ("php", "PHP"), ("python", "Python"), ("ruby", "Ruby"),
+        ("rust", "Rust"), ("go", "Go"), ("java", "Java/JVM"),
+    ], True),
+    ("php_stack", "How do you serve PHP locally?", [
+        ("herd", "Herd"), ("valet", "Valet"), ("docker", "Docker"),
+        ("brewphp", "Homebrew PHP / built-in server"), ("none", "Not applicable"),
+    ], False),
+    ("containers", "Containers", [("docker", "Docker Desktop or similar")], True),
+    ("editors", "Editors and IDEs", [
+        ("jetbrains", "JetBrains IDE"), ("vscode", "VS Code"), ("cursor", "Cursor"),
+        ("zed", "Zed"), ("sublime", "Sublime Text"), ("xcode", "Xcode"),
+    ], True),
+    ("terminal", "Terminal", [
+        ("iterm", "iTerm2"), ("ghostty", "Ghostty"), ("warp", "Warp"),
+        ("appleterminal", "Apple Terminal"), ("other_term", "Something else"),
+    ], True),
+    ("ai", "AI assistants and agents", [
+        ("claude", "Claude Code"), ("codex", "Codex CLI"), ("gemini", "Gemini CLI"),
+        ("copilot", "GitHub Copilot"), ("cursor_ai", "Cursor"), ("other_ai", "Another agent CLI"),
+    ], True),
+    ("ai_extras", "AI setup details", [
+        ("mcp", "I use MCP servers"),
+        ("skills", "I have custom skills/prompts"),
+        ("profiles", "I use multiple profiles/accounts"),
+        ("memory", "I want to keep project memory/history"),
+    ], True),
+    ("dbtools", "Database tools", [
+        ("client", "A GUI client (TablePlus, Sequel Ace, DataGrip, …)"),
+        ("localdb", "Local databases with real data I care about"),
+    ], True),
+    ("browsers", "Browsers whose setup matters", [
+        ("chromium", "Chrome/Arc/Edge/Brave (Chromium-based)"),
+        ("safari", "Safari"), ("firefox", "Firefox"),
+    ], True),
+    ("apps", "Other apps to carry over", [
+        ("launcher", "Launcher (Raycast, Alfred, …)"),
+        ("screenshot", "Screenshot tool"),
+        ("windows", "Window manager"),
+        ("notes", "Note app with local files"),
+        ("ownapps", "Apps I build myself"),
+    ], True),
+    ("data", "Personal folders to move", [
+        ("code", "~/Code (or wherever projects live)"),
+        ("documents", "~/Documents"), ("pictures", "~/Pictures"),
+        ("downloads", "~/Downloads"), ("movies", "~/Movies"), ("music", "~/Music"),
+        ("desktop", "~/Desktop"),
+    ], True),
+    ("managed", "Is either Mac managed by a company (MDM)?", [
+        ("yes", "Yes"), ("no", "No"),
+    ], False),
+]
+
+# task file -> condition on answers
+MODULES = [
+    ("00-prepare.md", lambda a: True),
+    ("01-inventory.md", lambda a: True),
+    ("02-dotfiles.md", lambda a: a["dotfiles"] in ("existing", "new")),
+    ("03-secrets-manager.md", lambda a: a["secrets"] == "manager"),
+    ("03-secrets-files.md", lambda a: a["secrets"] == "files"),
+    ("04-licenses.md", lambda a: True),
+    ("05-app-exports.md", lambda a: True),
+    ("06-code.md", lambda a: "code" in a["data"]),
+    ("07-transport-cable.md", lambda a: a["transport"] == "cable"),
+    ("07-transport-network.md", lambda a: a["transport"] == "network"),
+    ("07-transport-drive.md", lambda a: a["transport"] == "drive"),
+    ("08-transfer.md", lambda a: True),
+    ("09-newmac-base.md", lambda a: True),
+    ("10-packages.md", lambda a: "brew" in a["packages"] or "mas" in a["packages"]),
+    ("11-toolchains.md", lambda a: bool(a["languages"])),
+    ("12-php.md", lambda a: a["php_stack"] in ("herd", "valet")),
+    ("13-docker.md", lambda a: "docker" in a["containers"] or a["php_stack"] == "docker"),
+    ("14-editors.md", lambda a: bool(a["editors"])),
+    ("15-terminal.md", lambda a: bool(a["terminal"])),
+    ("16-ai.md", lambda a: bool(a["ai"])),
+    ("17-dbtools.md", lambda a: bool(a["dbtools"])),
+    ("18-browsers.md", lambda a: bool(a["browsers"])),
+    ("19-apps.md", lambda a: bool(a["apps"])),
+    ("20-ownapps.md", lambda a: "ownapps" in a["apps"]),
+    ("21-macos.md", lambda a: True),
+    ("22-verify.md", lambda a: True),
+    ("23-decommission.md", lambda a: True),
+]
+
+
+def ask(question):
+    key, prompt, options, multi = question
+    print("\n\033[1m%s\033[0m" % prompt)
+    for i, (_, label) in enumerate(options, 1):
+        print("  %d) %s" % (i, label))
+    hint = "numbers separated by space, or 'none'" if multi else "one number"
+    while True:
+        raw = input("  → [%s]: " % hint).strip().lower()
+        if multi and raw in ("none", "-", "0"):
+            return []
+        picks = [p for p in raw.replace(",", " ").split() if p]
+        if not picks and not multi:
+            continue
+        try:
+            chosen = [options[int(p) - 1][0] for p in picks]
+        except (ValueError, IndexError):
+            print("  ? try again")
+            continue
+        if not multi:
+            return chosen[0]
+        return chosen
+
+
+def render(answers, out_path):
+    """Assemble the selected task fragments into one plan, grouped by phase, numbered per phase."""
+    selected = [v if isinstance(v, list) else [v] for v in answers.values()]
+    chosen = {item for values in selected for item in values}
+
+    phases = []          # [(phase name, [task lines])] in first-seen order
+    for filename, condition in MODULES:
+        path = os.path.join(TASKS, filename)
+        if not condition(answers) or not os.path.exists(path):
+            continue
+        phase, tasks = None, []
+        for line in open(path).read().split("\n"):
+            if line.startswith("PHASE:"):
+                phase = line[6:].strip()
+                continue
+            if not line.strip():
+                continue
+            match = re.search(r"\{\{(.+?)\}\}", line)
+            if match:
+                if match.group(1).strip() not in chosen:
+                    continue
+                line = (line[:match.start()] + line[match.end():]).replace("  ", " ").rstrip()
+            tasks.append(line)
+        if phase is None or not tasks:
+            continue
+        for existing in phases:
+            if existing[0] == phase:
+                existing[1].extend(tasks)
+                break
+        else:
+            phases.append((phase, tasks))
+
+    blocks, total = [], 0
+    for index, (phase, tasks) in enumerate(phases, 1):
+        lines = ["## Phase %d — %s" % (index, phase), ""]
+        for number, task in enumerate(tasks, 1):
+            total += 1
+            lines.append(task.replace("- [ ] ", "- [ ] %d.%d " % (index, number), 1))
+        blocks.append("\n".join(lines))
+
+    header = [
+        "# Migration plan",
+        "",
+        "Generated by `bin/migrate`. Mark tasks `[x]` done, `[~]` in progress with a note of what remains.",
+        "Track with `bin/progress` (or `bin/progress --todo`).",
+        "",
+        "**Rules:** the old Mac stays untouched until the last phase · verify every copy · secrets never enter git ·",
+        "one change at a time on the new Mac.",
+        "",
+        "Selections: " + ", ".join(
+            "%s=%s" % (k, ",".join(v) if isinstance(v, list) else v) for k, v in answers.items() if v),
+        "",
+        "---",
+        "",
+    ]
+    open(out_path, "w").write("\n".join(header) + "\n\n".join(blocks) + "\n")
+    return total
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--answers", help="JSON file of answers to reuse")
+    parser.add_argument("--all", action="store_true", help="select everything, ask nothing")
+    parser.add_argument("--out", default=os.path.join(os.getcwd(), "PLAN.md"))
+    args = parser.parse_args()
+
+    if args.all:
+        answers = {q[0]: ([o[0] for o in q[2]] if q[3] else q[2][0][0]) for q in QUESTIONS}
+    elif args.answers:
+        answers = json.load(open(args.answers))
+    else:
+        print("A few questions — everything you don't use gets left out of the plan.")
+        answers = {}
+        for question in QUESTIONS:
+            answers[question[0]] = ask(question)
+
+    saved = os.path.join(os.getcwd(), ".migration-answers.json")
+    json.dump(answers, open(saved, "w"), indent=2)
+    total = render(answers, args.out)
+    print("\n\033[32m✓\033[0m %s — %d tasks (answers saved to %s)" % (args.out, total, os.path.basename(saved)))
+    print("  next: bin/inventory, then work through the plan with `bin/progress --todo`")
+
+
+if __name__ == "__main__":
+    main()

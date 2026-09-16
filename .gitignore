@@ -1,0 +1,18 @@
+# Your own plan and answers stay local unless you choose to commit them
+PLAN.md
+.migration-answers.json
+inventory-report.md
+
+# Never commit anything that could carry secrets
+*.env
+!*.env.tpl
+secrets*
+!templates/**/secrets*.tpl
+id_*
+*.pem
+*.p12
+*.rayconfig
+*.tableplusconnection
+
+.DS_Store
+__pycache__/

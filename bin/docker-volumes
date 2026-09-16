@@ -1,0 +1,60 @@
+#!/usr/bin/env bash
+# docker-volumes — move named Docker volumes between machines.
+#
+#   bin/docker-volumes list                          volumes with sizes and whether they're in use
+#   bin/docker-volumes export <dir> <volume>...      one <volume>.tgz per volume
+#   bin/docker-volumes restore <dir> [<volume>...]   recreate them (all archives in <dir> if none named)
+#
+# Volumes attached to a RUNNING container are skipped on export: database files copied mid-write
+# can be corrupt. Stop the project first (`docker compose stop`).
+#
+# Most dev databases are better re-seeded than moved. Use this for data you can't regenerate.
+set -uo pipefail
+
+IMAGE=alpine:3
+command -v docker >/dev/null || { echo "docker not found" >&2; exit 2; }
+
+cmd="${1:-}"; shift || true
+case "$cmd" in
+  list)
+    printf "%-45s %10s  %s\n" VOLUME SIZE "IN USE BY"
+    docker system df -v 2>/dev/null | awk '/^VOLUME NAME/{flag=1; next} /^$/{flag=0} flag {print $1, $NF}' |
+      while read -r name size; do
+        users=$(docker ps --filter "volume=$name" --format '{{.Names}}' | paste -sd, -)
+        printf "%-45s %10s  %s\n" "${name:0:45}" "$size" "${users:-—}"
+      done
+    ;;
+  export)
+    dir="${1:-}"; shift || true
+    [ -n "$dir" ] && [ $# -gt 0 ] || { echo "usage: bin/docker-volumes export <dir> <volume>..." >&2; exit 2; }
+    mkdir -p "$dir"; dir=$(cd "$dir" && pwd)
+    for volume in "$@"; do
+      docker volume inspect "$volume" >/dev/null 2>&1 || { echo "  ! $volume: no such volume"; continue; }
+      running=$(docker ps --filter "volume=$volume" --format '{{.Names}}' | paste -sd, -)
+      [ -n "$running" ] && { echo "  ! $volume: in use by $running — stop it first"; continue; }
+      docker run --rm -v "$volume":/volume:ro -v "$dir":/backup "$IMAGE" tar czf "/backup/$volume.tgz" -C /volume . \
+        && echo "  + $volume → $dir/$volume.tgz ($(du -h "$dir/$volume.tgz" | cut -f1))"
+    done
+    ;;
+  restore)
+    dir="${1:-}"; shift || true
+    [ -d "$dir" ] || { echo "usage: bin/docker-volumes restore <dir> [<volume>...]" >&2; exit 2; }
+    dir=$(cd "$dir" && pwd)
+    volumes=("$@")
+    if [ ${#volumes[@]} -eq 0 ]; then
+      for archive in "$dir"/*.tgz; do [ -e "$archive" ] && volumes+=("$(basename "$archive" .tgz)"); done
+    fi
+    for volume in "${volumes[@]}"; do
+      archive="$dir/$volume.tgz"
+      [ -f "$archive" ] || { echo "  ! $volume: $archive missing"; continue; }
+      if docker volume inspect "$volume" >/dev/null 2>&1 &&
+         [ -n "$(docker run --rm -v "$volume":/volume "$IMAGE" ls -A /volume)" ]; then
+        echo "  = $volume already has data, skipped"; continue
+      fi
+      docker volume create "$volume" >/dev/null
+      docker run --rm -v "$volume":/volume -v "$dir":/backup:ro "$IMAGE" tar xzf "/backup/$volume.tgz" -C /volume \
+        && echo "  + restored $volume"
+    done
+    ;;
+  *) sed -n '2,12p' "$0"; exit 2 ;;
+esac

@@ -1,0 +1,12 @@
+PHASE: Transfer
+- [ ] {{code}} Projects, excluding dependency and build folders (anchor excludes to the transfer root)
+- [ ] {{documents}} Documents
+- [ ] {{pictures}} Pictures
+- [ ] {{downloads}} Downloads
+- [ ] {{movies}} Movies
+- [ ] {{music}} Music
+- [ ] {{desktop}} Desktop
+- [ ] Shell history (merge, don't overwrite the new Mac's)
+- [ ] {{memory}} AI assistant memory/history folders
+- [ ] App export files and any `.env` files that travel separately
+- [ ] Verify every copy with `bin/verify-copy` (files and, for projects, git state)

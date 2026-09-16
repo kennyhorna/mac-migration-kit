@@ -1,0 +1,76 @@
+#!/usr/bin/env bash
+# install — set up a Mac from this repo. Every step is idempotent; re-run until everything is green.
+#
+#   bin/install               run every step
+#   bin/install brew link     run specific steps
+#   bin/install --list        list steps
+#
+# On a brand new Mac, first: xcode-select --install, then clone this repo.
+set -euo pipefail
+
+DOTFILES="${DOTFILES:-$HOME/.dotfiles}"
+export DOTFILES
+STEPS=(xcode brew ohmyzsh link macos secrets toolchains)
+
+step() { printf '\n\033[1;34m==> %s\033[0m\n' "$*"; }
+todo() { printf '\033[33m  TODO: %s\033[0m\n' "$*"; }
+
+run_xcode() {
+  step "Xcode command line tools"
+  xcode-select -p >/dev/null 2>&1 && echo "  installed" || {
+    xcode-select --install; echo "  re-run this script when the installer finishes"; exit 1; }
+}
+
+run_brew() {
+  step "Homebrew and packages"
+  if ! command -v brew >/dev/null && [ ! -x /opt/homebrew/bin/brew ]; then
+    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+  fi
+  eval "$(/opt/homebrew/bin/brew shellenv)"
+  brew bundle --file="$DOTFILES/Brewfile"
+}
+
+run_ohmyzsh() {
+  step "Shell framework (optional)"
+  [ -d "$HOME/.oh-my-zsh" ] && { echo "  installed"; return; }
+  RUNZSH=no KEEP_ZSHRC=yes sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
+}
+
+run_link() {
+  step "Symlinks"
+  "$DOTFILES/bin/link" --apply
+  mkdir -p "$HOME/.dotfiles-custom"
+}
+
+run_macos() {
+  step "macOS defaults"
+  bash "$DOTFILES/macos/defaults.sh"
+}
+
+run_secrets() {
+  step "Secrets"
+  # With a password manager CLI, render the template. Without one, put the file there by hand.
+  if command -v op >/dev/null && op whoami >/dev/null 2>&1; then
+    op inject -f -i "$DOTFILES/secrets.env.tpl" -o "$HOME/.dotfiles-custom/secrets.env" \
+      && chmod 600 "$HOME/.dotfiles-custom/secrets.env" && echo "  rendered ~/.dotfiles-custom/secrets.env"
+  else
+    [ -f "$HOME/.dotfiles-custom/secrets.env" ] \
+      && echo "  ~/.dotfiles-custom/secrets.env present" \
+      || todo "put your secrets in ~/.dotfiles-custom/ (see secrets.env.tpl)"
+  fi
+}
+
+run_toolchains() {
+  step "Language toolchains"
+  # Install version managers through Homebrew, runtimes here, then global packages.
+  # nvm needs `set +eu` around it; it isn't compatible with strict mode.
+  todo "add your toolchain setup (node/php/python/ruby/rust) to run_toolchains"
+}
+
+[ "${1:-}" = "--list" ] && { printf '%s\n' "${STEPS[@]}"; exit 0; }
+selected=("$@")
+[ ${#selected[@]} -eq 0 ] && selected=("${STEPS[@]}")
+for s in "${selected[@]}"; do
+  declare -F "run_$s" >/dev/null || { echo "unknown step: $s (see --list)" >&2; exit 2; }
+  "run_$s"
+done
