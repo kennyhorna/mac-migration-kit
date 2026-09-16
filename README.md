@@ -1,90 +1,87 @@
 # Mac Migration Kit
 
-A practical, checklist-driven way to move from one MacBook to another **without Migration Assistant** — so the new machine gets your setup, not your accumulated mess.
+Move from one MacBook to another without Migration Assistant. You get a clean machine with your setup on it, and a repeatable process for next time.
 
-Built from a real migration. Every warning in here corresponds to something that actually went wrong.
+Written after a full migration. The warnings are things that actually broke.
 
 ```bash
 git clone https://github.com/<you>/mac-migration-kit.git ~/mac-migration-kit
 cd ~/mac-migration-kit
-bin/inventory            # what's on this Mac, and what would be lost by only re-cloning
-bin/migrate              # pick what you use → writes a PLAN.md tailored to you
+bin/inventory            # what's on this Mac, and what re-cloning would lose
+bin/migrate              # pick what you use, get a PLAN.md
 bin/progress --todo      # track it
 ```
 
-## Why not Migration Assistant?
+## Why not Migration Assistant
 
-It copies everything, including years of cruft: old language runtimes, dead package managers, stale login items, caches. A fresh setup plus a deliberate copy of your data gives you a clean machine and, as a by-product, a repeatable setup you can reuse next time.
+It copies everything, including years of cruft: old runtimes, dead package managers, stale login items, caches. Setting up fresh and copying only your data takes a few hours more and leaves you with a machine you understand.
 
-The trade-off is a few hours of work. This kit removes most of it.
+## How it works
 
-## The idea
+Sort everything into three groups:
 
-1. **Declare** what can be declared: packages, dotfiles, editor settings, macOS defaults. These live in a git repo you keep.
-2. **Copy** what can't: work in progress, local databases, app data, anything the app encrypts per device.
-3. **Re-create** what neither can hold: logins, licenses, permissions. These need hands.
+1. **Declarable.** Packages, dotfiles, editor settings, macOS defaults. These belong in a git repo.
+2. **Copyable.** Uncommitted work, local databases, app data, `.env` files, personal folders. Nothing regenerates these, so this is where migrations lose data.
+3. **Re-createable.** Logins, licenses, privacy permissions. These need your hands.
 
-Anything in category 2 is the migration's real risk, and `bin/inventory` is built to find it.
+`bin/inventory` exists to find everything in group 2 before you start.
 
 ## What's here
 
 | Path | What it is |
 |---|---|
 | `bin/migrate` | Interactive planner. Asks what you use, writes a `PLAN.md` with only the relevant steps |
-| `bin/inventory` | Audits the old Mac: packages, shells, keys, git repos with unpushed work, app data, AI tooling |
+| `bin/inventory` | Audits the old Mac: packages, shells, keys, repos with unpushed work, app data, AI tooling |
 | `bin/transfer` | Copies a folder to the other Mac over SSH, with the macOS pitfalls handled |
-| `bin/verify-copy` | Confirms a copy arrived: same files, same sizes |
-| `bin/repo-report` | Lists git repos holding work that exists nowhere else |
-| `bin/ssh-audit` | Shows which SSH keys you actually still use, so you don't carry dead ones over |
-| `bin/progress` | Progress bars per phase from your `PLAN.md` |
+| `bin/verify-copy` | Confirms a copy arrived: same files, same sizes, same git state |
+| `bin/repo-report` | Lists repos holding work that exists nowhere else |
+| `bin/ssh-audit` | Shows which SSH keys you still use, so dead ones stay behind |
+| `bin/docker-volumes` | Exports and restores named Docker volumes |
+| `bin/progress` | Progress per phase from your `PLAN.md` |
 | `docs/` | The guides. Start with [`docs/01-principles.md`](docs/01-principles.md) |
-| `templates/` | Starting points: dotfiles layout, `Brewfile`, `.gitignore`, secrets template |
-| `tasks/` | Task fragments the planner assembles into your `PLAN.md` |
+| `templates/` | A dotfiles starter: install and link scripts, Brewfile, macOS defaults, AI config layout |
+| `tasks/` | Task fragments the planner assembles into your plan |
 
 ## Use it with an AI agent
 
-The repo is written so a coding agent (Claude Code, Codex, Copilot CLI, Cursor, …) can drive the migration with you. [`AGENTS.md`](AGENTS.md) is the playbook: what to check, what to never do unattended, and how to verify each step.
+[`AGENTS.md`](AGENTS.md) (also readable as `CLAUDE.md`) tells a coding agent how to help: what to verify, what never to do unattended, and which steps only you can perform.
 
 ```bash
-# in the repo, with your agent of choice
 "Read AGENTS.md and run the inventory, then help me plan the migration."
 ```
 
-## Recommended: connect the two Macs with a USB-C cable
+## Use a USB-C cable between the two Macs
 
-The fastest and simplest transport, and it avoids Wi-Fi entirely.
+Fastest transport, no Wi-Fi involved, nothing to configure. macOS brings up a private network between the machines as soon as you connect them.
 
-- A **Thunderbolt** cable gives you tens of Gbit/s; a plain **USB-C data** cable typically gives 100 Mbit/s or more. Both beat copying to an external drive twice.
-- macOS brings up a private network between the two Macs automatically. Nothing to configure.
-- Company Wi-Fi often isolates devices from each other, so a direct copy over the network may not work at all.
+- A Thunderbolt cable moves tens of Gbit/s. A plain USB-C data cable usually negotiates 100 Mbit/s, which still copies 15 GB in about 20 minutes.
+- Company and guest Wi-Fi often block machines from reaching each other, so a network copy may not work at all.
+- Copying to an external drive means copying everything twice.
 
-See [`docs/02-transport.md`](docs/02-transport.md) for the setup, and for a copy pitfall that silently loses data.
+[`docs/02-transport.md`](docs/02-transport.md) has the setup, plus a copy pitfall that loses data while reporting success.
 
 ## Ground rules
 
-- **The old Mac stays untouched until the end.** Copy, never move. Wipe only after the new machine has carried your work for a couple of weeks.
-- **Verify every copy.** "The command exited 0" is not evidence. Compare file counts and sizes; for git repos compare commits, branches and stashes.
+- **The old Mac stays untouched until the end.** Copy, never move. Wipe it only after the new machine has carried real work for a couple of weeks.
+- **Verify every copy.** Exit code 0 proves the command ran, not that your files arrived.
 - **Secrets never enter git.** See [`docs/04-secrets.md`](docs/04-secrets.md).
-- **One change at a time on the new Mac**, so you can tell what broke.
+- **One change at a time on the new Mac**, so a failure has an obvious cause.
 
-## Optional by design
+## Nothing is assumed
 
-Nothing here assumes your exact stack. The planner asks, and skips what you don't use:
+The planner asks what you use and drops the rest:
 
-- **Secrets:** a password manager with an SSH agent, or plain SSH keys with a passphrase.
+- **Secrets:** a password manager with an SSH agent, or plain SSH key files.
 - **Dev environment:** Homebrew, and any of Node, PHP, Ruby, Python, Rust, Go, Java, Docker.
-- **PHP:** Herd, Valet, Docker, or plain Homebrew PHP.
+- **Local PHP:** Herd, Valet, Docker, or Homebrew PHP.
 - **Editors:** JetBrains IDEs, VS Code, Cursor, Zed, Sublime, Xcode.
-- **AI tooling:** Claude Code, Codex CLI, Gemini CLI, Copilot, Cursor, and others — including MCP servers and agent instruction files.
+- **AI tooling:** Claude Code, Codex, Gemini, Copilot, Cursor and others, including MCP servers, skills and agent instruction files.
+
+A minimal setup produces a plan of about 65 steps; selecting everything produces about 120.
 
 ## Credits
 
-The dotfiles approach here — a repo of symlinked config, a `Brewfile` as the single source of truth for
-packages, and one idempotent install script that sets up a Mac in minutes — is inspired by
-[**A tour of my dotfiles**](https://freek.dev/3054-a-tour-of-my-dotfiles) by Freek Van der Herten.
-Read it: it's a short post and a good model for the "declarable" half of a migration.
-
-This kit adds the other half — the data that no repo can hold, and the checklist to move it safely.
+The dotfiles half of this (symlinked config, a Brewfile as the source of truth, one idempotent install script) follows [A tour of my dotfiles](https://freek.dev/3054-a-tour-of-my-dotfiles) by Freek Van der Herten. This kit adds the parts a repo can't hold: the data, and the checklist to move it safely.
 
 ## License
 
