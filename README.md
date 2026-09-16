@@ -77,6 +77,15 @@ Nothing here assumes your exact stack. The planner asks, and skips what you don'
 - **Editors:** JetBrains IDEs, VS Code, Cursor, Zed, Sublime, Xcode.
 - **AI tooling:** Claude Code, Codex CLI, Gemini CLI, Copilot, Cursor, and others — including MCP servers and agent instruction files.
 
+## Credits
+
+The dotfiles approach here — a repo of symlinked config, a `Brewfile` as the single source of truth for
+packages, and one idempotent install script that sets up a Mac in minutes — is inspired by
+[**A tour of my dotfiles**](https://freek.dev/3054-a-tour-of-my-dotfiles) by Freek Van der Herten.
+Read it: it's a short post and a good model for the "declarable" half of a migration.
+
+This kit adds the other half — the data that no repo can hold, and the checklist to move it safely.
+
 ## License
 
 MIT. See [LICENSE](LICENSE).

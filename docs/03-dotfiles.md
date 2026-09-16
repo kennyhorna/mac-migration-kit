@@ -2,6 +2,9 @@
 
 A dotfiles repo turns "set up my Mac" into a command. You don't need a fancy one — a folder, some symlinks and an install script beat any framework.
 
+For a well-explained example of the whole idea, see [A tour of my dotfiles](https://freek.dev/3054-a-tour-of-my-dotfiles)
+by Freek Van der Herten, which inspired the layout below.
+
 If you already have one, skip to [installers fight your dotfiles](#installers-fight-your-dotfiles); it's the failure mode people hit during a migration.
 
 ## A layout that scales
