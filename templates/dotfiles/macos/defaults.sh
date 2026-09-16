@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# macOS settings. Safe to re-run. Adapt to taste — these are examples, not recommendations.
+# macOS settings. Safe to re-run. Adapt to taste; these are examples, not recommendations.
 #
 # To find the key for a setting you changed:
 #   defaults read > /tmp/before.txt   # change it in System Settings
@@ -30,7 +30,7 @@ defaults write NSGlobalDomain AppleShowAllExtensions -bool true
 
 echo "== Keyboard"
 # Caps Lock → Command. This is stored PER KEYBOARD, keyed by vendor/product id, and those ids
-# differ between Macs — so map every keyboard attached right now. Re-run after plugging a new one in.
+# differ between Macs, so map every keyboard attached right now. Re-run after plugging a new one in.
 # 0x700000039 = Caps Lock · 0x7000000E7 = Right Command · 0x7000000E0 = Left Control
 CAPS_LOCK=30064771129
 TARGET=30064771303

@@ -28,7 +28,7 @@ Real failures from real migrations, with the fix.
 3. The restore step **didn't match the site name's case** and silently skipped it.
 4. The PHP version the site needs **isn't installed**.
 
-**Fix:** set the default version first, then re-pin the site, then restart the service. Note that a bare `php` in the terminal may not use the site's version — use the tool's wrapper.
+**Fix:** set the default version first, then re-pin the site, then restart the service. Note that a bare `php` in the terminal may not use the site's version; use the tool's wrapper.
 
 ## An installer keeps dirtying my dotfiles repo
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# progress — progress bars per phase from a PLAN.md written by bin/migrate.
+# progress: progress bars per phase from a PLAN.md written by bin/migrate.
 #
 #   bin/progress            bars per phase
 #   bin/progress --todo     also list the open tasks
@@ -8,7 +8,7 @@
 # Marks: [ ] open · [~] in progress · [x] done
 PLAN="${2:-${1:-PLAN.md}}"
 [ "$PLAN" = "--todo" ] && PLAN="PLAN.md"
-[ -f "$PLAN" ] || { echo "no $PLAN — run bin/migrate first" >&2; exit 2; }
+[ -f "$PLAN" ] || { echo "no $PLAN, run bin/migrate first" >&2; exit 2; }
 TODO=0
 [ "${1:-}" = "--todo" ] && TODO=1
 

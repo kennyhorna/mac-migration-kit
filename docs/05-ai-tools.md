@@ -4,7 +4,7 @@ AI coding tools spread configuration across several dotfolders, and most of it i
 
 ## What each tool keeps, and where
 
-Paths change as these tools evolve — check yours before copying. Common locations:
+Paths change as these tools evolve, so check yours before copying. Common locations:
 
 | Tool | Config | Typically holds |
 |---|---|---|
@@ -42,7 +42,7 @@ Then:
   ln -sfn ~/.dotfiles/ai/AGENTS.md ~/.codex/AGENTS.md
   ln -sfn ~/.dotfiles/ai/AGENTS.md ~/.gemini/GEMINI.md
   ```
-- **MCP servers:** keep one definition and render it into each tool's format. Claude and Cursor use JSON, Codex uses TOML, others vary — the fields (command, args, env, url, headers) map cleanly between them.
+- **MCP servers:** keep one definition and render it into each tool's format. Claude and Cursor use JSON, Codex uses TOML and others vary, but the fields (command, args, env, url, headers) map cleanly between them.
 - **Secrets in MCP definitions:** always `${VAR}` references, never literal tokens, with the values coming from your shell environment or password manager.
 
 Some tools read another tool's config directly (a compatibility mode for Claude's config files is common). Check before defining the same server twice: duplicates can shadow each other.
@@ -52,7 +52,7 @@ Some tools read another tool's config directly (a compatibility mode for Claude'
 If you keep separate setups (work and personal, say), most CLIs support pointing at a different config directory through an environment variable, e.g. a wrapper alias per profile. When migrating:
 
 - Repeat each step per profile.
-- Remember that "start the tool once" is usually required before its config file exists — several tools only create it at first launch, so scripted config writing must happen **after** that.
+- Remember that "start the tool once" is usually required before its config file exists. Several tools only create it at first launch, so scripted config writing must happen **after** that.
 
 If you only use one profile, ignore all of this.
 
@@ -79,7 +79,7 @@ Same reasoning applies to per-project MCP definitions and IDE run configs: they 
 ## Editor-based assistants
 
 - **Copilot in an IDE:** settings live with the IDE (see [`docs/06-apps.md`](06-apps.md)); auth is per-device, so sign in again.
-- **Cursor:** it's a VS Code fork — settings, keybindings and extensions export the same way. Its rules and MCP files are worth versioning.
+- **Cursor:** it's a VS Code fork, so settings, keybindings and extensions export the same way. Its rules and MCP files are worth versioning.
 - **Continue/others:** config is usually a single JSON/YAML file, easy to version.
 
 ## Verify on the new Mac

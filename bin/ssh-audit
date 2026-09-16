@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# ssh-audit — which SSH keys do you actually still use?
+# ssh-audit: which SSH keys do you actually still use?
 #
 #   bin/ssh-audit                          test every key against GitHub and GitLab
 #   bin/ssh-audit --hosts user@host,user@host2   also probe servers you have access to
@@ -105,7 +105,7 @@ if [ -n "$HOSTS" ]; then
   echo
   echo "== servers"
   echo "  (offering all keys in one connection, then repeating without the accepted one,"
-  echo "   so failed attempts stay low — some servers ban repeated failures)"
+  echo "   so failed attempts stay low, some servers ban repeated failures)"
   IFS=',' read -ra TARGETS <<< "$HOSTS"
   for target in "${TARGETS[@]}"; do
     remaining=("${KEYS[@]}"); accepted=()

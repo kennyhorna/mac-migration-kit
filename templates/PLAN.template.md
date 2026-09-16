@@ -9,7 +9,7 @@ one change at a time on the new Mac.
 Selections: transport=cable, secrets=manager, dotfiles=existing, shell=zsh, packages=brew,mas, languages=node,php,python,ruby,rust,go,java, php_stack=herd, containers=docker, editors=jetbrains,vscode,cursor,zed,sublime,xcode, terminal=iterm,ghostty,warp,appleterminal,other_term, ai=claude,codex,gemini,copilot,cursor_ai,other_ai, ai_extras=mcp,skills,profiles,memory, dbtools=client,localdb, browsers=chromium,safari,firefox, apps=launcher,screenshot,windows,notes,ownapps, data=code,documents,pictures,downloads,movies,music,desktop, managed=yes
 
 ---
-## Phase 1 — Preparation (old Mac)
+## Phase 1: Preparation (old Mac)
 
 - [ ] 1.1 Decide the migration window and keep the old Mac untouched until the end
 - [ ] 1.2 Create the new Mac's first account with the **same short username** as the old one (absolute paths in configs keep working)
@@ -20,7 +20,7 @@ Selections: transport=cable, secrets=manager, dotfiles=existing, shell=zsh, pack
 - [ ] 1.7 Run `bin/ssh-audit` and decide which keys to keep
 - [ ] 1.8 List every paid app and where its licence lives (account / key / device-bound)
 
-## Phase 2 — Capture (old Mac)
+## Phase 2: Capture (old Mac)
 
 - [ ] 2.1 Move shell config into it and symlink it back (`bin/link --apply`), then open a new terminal and verify
 - [ ] 2.2 Add app configs that are plain files (editor settings, terminal config, git config, global gitignore)
@@ -46,7 +46,7 @@ Selections: transport=cable, secrets=manager, dotfiles=existing, shell=zsh, pack
 - [ ] 2.22 Decide the folder layout on the new Mac; if it changes, list what stores absolute paths
 - [ ] 2.23 Decide per project: re-seed the local database or move its data
 
-## Phase 3 — Transfer
+## Phase 3: Transfer
 
 - [ ] 3.1 Connect the Macs with a USB-C/Thunderbolt **data** cable
 - [ ] 3.2 Enable Remote Login on the destination Mac, restricted to your user
@@ -64,7 +64,7 @@ Selections: transport=cable, secrets=manager, dotfiles=existing, shell=zsh, pack
 - [ ] 3.14 App export files and any `.env` files that travel separately
 - [ ] 3.15 Verify every copy with `bin/verify-copy` (files and, for projects, git state)
 
-## Phase 4 — New Mac
+## Phase 4: New Mac
 
 - [ ] 4.1 Run Setup Assistant **without** Migration Assistant; enable FileVault
 - [ ] 4.2 `xcode-select --install`
@@ -90,7 +90,7 @@ Selections: transport=cable, secrets=manager, dotfiles=existing, shell=zsh, pack
 - [ ] 4.22 Restore or re-seed local databases; move named volumes only where the data matters
 - [ ] 4.23 Start one project's stack end to end as a check
 
-## Phase 5 — Apps
+## Phase 5: Apps
 
 - [ ] 5.1 JetBrains: install, sign in, then **get** settings from your account (never push the fresh install's defaults)
 - [ ] 5.2 Re-enter database connection passwords (they live in the Keychain, not in sync)
@@ -132,7 +132,7 @@ Selections: transport=cable, secrets=manager, dotfiles=existing, shell=zsh, pack
 - [ ] 5.38 Modifier remapping (e.g. Caps Lock): set it for the keyboards present on this Mac
 - [ ] 5.39 Import keyboard shortcuts, and re-check anything the apps above claimed
 
-## Phase 6 — Verification
+## Phase 6: Verification
 
 - [ ] 6.1 Tests pass in 2–3 projects, using the right runtime versions
 - [ ] 6.2 `git push` works from a real repo
@@ -140,7 +140,7 @@ Selections: transport=cable, secrets=manager, dotfiles=existing, shell=zsh, pack
 - [ ] 6.4 Dotfiles: linking reports nothing pending; the repo is clean after a day's use
 - [ ] 6.5 Remove the temporary transfer key from both Macs and turn Remote Login off
 
-## Phase 7 — Decommission (2+ weeks later)
+## Phase 7: Decommission (2+ weeks later)
 
 - [ ] 7.1 Final sweep of the old Mac for anything created or changed since the transfer
 - [ ] 7.2 Deactivate remaining licences and sign out of accounts (Apple Account, password manager, browsers)

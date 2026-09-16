@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# transfer — copy a folder to the other Mac over SSH, avoiding the macOS copy pitfalls.
+# transfer: copy a folder to the other Mac over SSH, avoiding the macOS copy pitfalls.
 #
 #   bin/transfer ~/Pictures user@169.254.x.y                 → ~/Pictures on the target
 #   bin/transfer ~/Code user@169.254.x.y Code/projects       → a different path on the target
@@ -8,7 +8,7 @@
 #   bin/transfer --cleanup                                   → how to remove the temporary access afterwards
 #
 # Uses a tar stream, which creates destination folders as it extracts. macOS's bundled rsync
-# silently copies NOTHING when the destination folder doesn't exist — and still exits 0.
+# silently copies NOTHING when the destination folder doesn't exist, and still exits 0.
 set -uo pipefail
 
 EXCLUDES=(--exclude .DS_Store --exclude .localized)
@@ -44,7 +44,7 @@ DEST="${DEST:-$(basename "$SRC")}"
 
 if [ "$CODE_MODE" = 1 ]; then
   EXCLUDES+=(--exclude node_modules --exclude .build --exclude DerivedData)
-  echo "note: top-level 'vendor' and 'target' folders are NOT excluded automatically —"
+  echo "note: top-level 'vendor' and 'target' folders are NOT excluded automatically -"
   echo "      excludes match at every depth, which would drop tracked folders like public/vendor."
 fi
 
@@ -54,7 +54,7 @@ echo "source : $SRC ($size, $files files)"
 echo "target : $REMOTE:~/$DEST"
 
 if [ "$DRY" = 1 ]; then
-  echo "(dry run — nothing copied)"
+  echo "(dry run, nothing copied)"
   exit 0
 fi
 
@@ -65,7 +65,7 @@ if COPYFILE_DISABLE=1 tar -cf - -C "$SRC" "${EXCLUDES[@]}" . \
    | ssh "$REMOTE" "tar -xpf - -C \"\$HOME/$DEST\""; then
   echo "copied in $(( $(date +%s) - start ))s"
 else
-  echo "transfer failed — safe to re-run, tar overwrites what it already sent" >&2
+  echo "transfer failed, safe to re-run, tar overwrites what it already sent" >&2
   exit 1
 fi
 

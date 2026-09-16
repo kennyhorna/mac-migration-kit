@@ -101,11 +101,11 @@ Check every paid app **before** wiping the old Mac:
 - **Account-based:** sign in on the new Mac. Nothing to do.
 - **Key-based:** make sure the key is in your password manager. If you can't find it, the vendor's account page or the original purchase email has it.
 - **Device-bound:** deactivate on the old Mac (often in the app's licence screen), then activate on the new one. The activation file on disk is not portable; copying it achieves nothing.
-- **Company-provided licenses:** the key may not be in your possession at all. Ask whoever administers it early — it can take days.
+- **Company-provided licenses:** the key may not be in your possession at all. Ask whoever administers it early, because it can take days.
 
 ## After the migration
 
 1. Remove any temporary transfer key from both machines.
 2. Rotate anything that was exposed in the process (a key that briefly sat in a plain file, a token in a screenshot).
-3. Delete plaintext secret files you created for the move — after confirming the new Mac works.
+3. Delete plaintext secret files you created for the move, once the new Mac works.
 4. Keep passphrases for export files (database client exports, launcher backups) in your password manager: those archives are useless without them.

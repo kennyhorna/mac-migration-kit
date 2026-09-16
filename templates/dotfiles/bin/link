@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# link — symlink files from this repo into place. Dry run unless --apply.
+# link: symlink files from this repo into place. Dry run unless --apply.
 #
 #   bin/link            show what would change
 #   bin/link --apply    do it, backing up anything it replaces

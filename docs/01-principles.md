@@ -2,7 +2,7 @@
 
 Sort everything you own into three buckets before you copy a single byte. The middle bucket is where migrations go wrong.
 
-## 1. Declarable — belongs in a git repo
+## 1. Declarable: belongs in a git repo
 
 Rebuildable from a text file, so it should never be copied by hand:
 
@@ -14,7 +14,7 @@ Rebuildable from a text file, so it should never be copied by hand:
 
 Keep these in a dotfiles repo (see [`docs/03-dotfiles.md`](03-dotfiles.md)). A private repo is fine and usually wise.
 
-## 2. Copyable — exists only on this machine
+## 2. Copyable: exists only on this machine
 
 This is the dangerous bucket. Nothing regenerates it:
 
@@ -26,7 +26,7 @@ This is the dangerous bucket. Nothing regenerates it:
 
 `bin/inventory` and `bin/repo-report` exist to enumerate this bucket. Do that before you plan anything.
 
-## 3. Re-createable — needs hands and accounts
+## 3. Re-createable: needs hands and accounts
 
 Not copyable, or not safely copyable:
 
@@ -63,7 +63,7 @@ Check each paid app while the old Mac still works. Deactivate where the app offe
 A migration is the cheapest moment to drop things:
 
 - Packages you installed once for an experiment
-- Repos already pushed and untouched for years — re-clone if you ever need them
+- Repos already pushed and untouched for years. Re-clone if you ever need them
 - SSH keys nothing accepts any more (`bin/ssh-audit` finds these)
 - Apps you haven't opened in a year
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-verify-copy — prove a copy actually arrived.
+verify-copy, prove a copy actually arrived.
 
   bin/verify-copy ~/Pictures user@169.254.x.y Pictures
   bin/verify-copy --git ~/Code user@169.254.x.y Code
@@ -88,7 +88,7 @@ def main():
     local_files = parse_files(run_local(LIST_FILES % (shell_quote(source), prune)))
     remote_files = parse_files(fetch(LIST_FILES))
     if not remote_files:
-        sys.exit("target listing is empty — nothing arrived, or the path is wrong")
+        sys.exit("target listing is empty, nothing arrived, or the path is wrong")
 
     missing = sorted(k for k in local_files if k not in remote_files)
     mismatched = sorted(k for k in local_files if k in remote_files and local_files[k] != remote_files[k])
@@ -130,8 +130,8 @@ def main():
 
     print()
     if problems:
-        sys.exit("\033[31m%d problem(s)\033[0m — re-copy the gaps and run again" % problems)
-    print("\033[32mverified\033[0m — everything from the source is on the target with identical sizes")
+        sys.exit("\033[31m%d problem(s)\033[0m, re-copy the gaps and run again" % problems)
+    print("\033[32mverified\033[0m, everything from the source is on the target with identical sizes")
 
 
 def shell_quote(path):

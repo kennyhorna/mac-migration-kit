@@ -50,7 +50,7 @@ When the migration is done: remove that line, turn **Remote Login** back off, an
 
 ## The pitfall that silently loses data
 
-**macOS ships `openrsync` as `rsync`. It does nothing when the destination folder doesn't exist — and still exits 0.**
+**macOS ships `openrsync` as `rsync`. It does nothing when the destination folder doesn't exist, and still exits 0.**
 
 ```
 Number of files: 250
@@ -97,7 +97,7 @@ Leaving out dependency and build folders saves a lot of time:
 | `node_modules` | `npm install` | Yes |
 | `vendor` (top level) | `composer install` | Yes, but see [`docs/07-dev-environment.md`](07-dev-environment.md) about private package credentials |
 | `.build`, `target`, `DerivedData` | a build | Yes, they're often the biggest folders |
-| `.git` | nothing — **never exclude it** | No |
+| `.git` | nothing, **never exclude it** | No |
 | `.env`, local SQLite files | nothing | No |
 
 Rebuilding dependencies needs working toolchains and, for private packages, credentials. Plan for that before you delete anything on the old machine.

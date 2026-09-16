@@ -2,16 +2,16 @@
 
 Every app falls into one of four patterns. Identify which, and the work becomes obvious.
 
-1. **Account sync** — sign in, everything returns.
-2. **Export/import** — the app makes a file; you carry it and import it.
-3. **Config folder** — copy a folder or plist, ideally before first launch.
-4. **Re-do by hand** — nothing is portable.
+1. **Account sync.** Sign in, everything returns.
+2. **Export/import.** The app makes a file; you carry it and import it.
+3. **Config folder.** Copy a folder or plist, ideally before first launch.
+4. **Re-do by hand.** Nothing is portable.
 
 Below, the apps that commonly cause trouble.
 
 ## Browsers
 
-**Sync restores less than you think.** Browser sync typically covers bookmarks, open tabs, and settings — but **not profiles themselves**, and never the encrypted parts.
+**Sync restores less than you think.** Browser sync typically covers bookmarks, open tabs and settings, but **not profiles themselves**, and never the encrypted parts.
 
 - **Profiles:** if you keep several (work, personal, client), expect to re-create them on the new Mac and re-assign spaces/windows to them. Note which spaces belonged to which profile **before** you start.
 - **Pinned tabs / bookmarks:** verify the count after syncing. It's common to find part of them missing. Export as an HTML bookmarks file from the old browser as a safety net, since every browser can import that format.
@@ -22,7 +22,7 @@ Below, the apps that commonly cause trouble.
 
 ## IDEs and editors
 
-**JetBrains IDEs** have built-in settings sync tied to your account. On the new machine, install the IDE, sign in, then **explicitly choose to take settings *from* the account** — don't let a fresh install push its defaults up. The first dialog offers both directions; pick "get".
+**JetBrains IDEs** have built-in settings sync tied to your account. On the new machine, install the IDE, sign in, then **explicitly choose to take settings *from* the account**. Don't let a fresh install push its defaults up. The first dialog offers both directions; pick "get".
 
 Database connections sync, but **their passwords live in the Keychain**, so re-enter them. Plugin licenses follow your account.
 
@@ -59,7 +59,7 @@ The single most common data-loss point, because **connection passwords live in t
 
 - **Launchers (Raycast, Alfred):** export their settings to a file (usually password-protected), copy it over, import. Clipboard history is usually **not** included. They need Accessibility permission again.
 - **Window managers, screenshot tools, keyboard tools:** most keep a preferences domain you can `defaults export` and `defaults import` **before first launch**. Screen-recording and Accessibility permissions must be granted again by hand.
-- **Note apps:** account-synced ones need only a login. File-based ones (a vault of Markdown files) just need the folder copied — and the folder is worth putting in git or a sync service afterwards.
+- **Note apps:** account-synced ones need only a login. File-based ones (a vault of Markdown files) just need the folder copied, and that folder is worth putting in git or a sync service afterwards.
 
 ## Containers and VMs
 

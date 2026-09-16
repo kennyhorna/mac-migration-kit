@@ -19,7 +19,7 @@ Drive the mechanical parts, keep the checklist honest, and make sure nothing is 
 
 **Verify every copy.** A zero exit code is not evidence. Compare file counts and sizes; for repos compare commit, branches, stashes and modified files. Say plainly what you checked.
 
-**Never print secret values.** Read them, move them, reference them — but don't echo keys, tokens or passwords into the transcript. Redact when you must show structure (`API_KEY=<redacted>`). Prefer a password manager CLI or a direct file copy over pasting values.
+**Never print secret values.** Read them, move them and reference them, but don't echo keys, tokens or passwords into the transcript. Redact when you must show structure (`API_KEY=<redacted>`). Prefer a password manager CLI or a direct file copy over pasting values.
 
 **Ask before anything outward-facing or hard to undo:** creating repositories, pushing, deleting keys from a hosting provider, logging in to servers, changing settings on the other machine, uninstalling apps.
 
@@ -39,7 +39,7 @@ When you hit one of theirs, state exactly what to click, then wait.
 
 **Reporting to a checklist.** Keep `PLAN.md` accurate: `[ ]` open, `[~]` in progress with what remains, `[x]` done with how it was verified. Note blockers (a licence key that takes days) rather than silently skipping them.
 
-**Path changes.** If the person reorganizes folders, find every place storing absolute paths — local site definitions, IDE run configs, per-project tool config, assistant memory folders — and update them in one pass. Say what you changed.
+**Path changes.** If the person reorganizes folders, find every place storing absolute paths (local site definitions, IDE run configs, per-project tool config, assistant memory folders) and update them in one pass. Say what you changed.
 
 **Long operations.** Run them in the background with a log, report progress on request, and check the result rather than assuming.
 
@@ -58,4 +58,4 @@ Before the old Mac is wiped:
 
 ## Talking about it
 
-Report what you did and what you verified. If a step failed, say so, show the error, and propose the fix. Don't claim an app "works" because it launched — say what you actually observed.
+Report what you did and what you verified. If a step failed, say so, show the error, and propose the fix. Don't claim an app "works" because it launched; say what you actually observed.

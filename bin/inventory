@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# inventory — what's on this Mac, and what would be lost if you only re-cloned and re-installed.
+# inventory: what's on this Mac, and what would be lost if you only re-cloned and re-installed.
 #
 #   bin/inventory                 print the report
 #   bin/inventory --out FILE      also write it to FILE (default: inventory-report.md)
@@ -15,7 +15,7 @@ exec > >(tee "$OUT")
 h() { printf '\n## %s\n\n' "$*"; }
 have() { command -v "$1" >/dev/null 2>&1; }
 
-echo "# Inventory — $(scutil --get ComputerName 2>/dev/null), $(date +%F)"
+echo "# Inventory, $(scutil --get ComputerName 2>/dev/null), $(date +%F)"
 echo
 echo "macOS $(sw_vers -productVersion) · $(sysctl -n machdep.cpu.brand_string 2>/dev/null) · user \`$(whoami)\`"
 echo
@@ -97,7 +97,7 @@ else
 fi
 
 h "SSH and credentials (names only)"
-echo "- Keys in ~/.ssh: $(ls "$HOME"/.ssh/*.pub 2>/dev/null | wc -l | xargs) public keys — run \`bin/ssh-audit\` to see which are still used"
+echo "- Keys in ~/.ssh: $(ls "$HOME"/.ssh/*.pub 2>/dev/null | wc -l | xargs) public keys, run \`bin/ssh-audit\` to see which are still used"
 [ -f "$HOME/.ssh/config" ] && echo "- ~/.ssh/config: $(grep -c '^Host ' "$HOME/.ssh/config") Host entries"
 for f in .aws/config .aws/credentials .kube/config .npmrc .composer/auth.json .config/composer/auth.json .docker/config.json .netrc; do
   [ -f "$HOME/$f" ] && echo "- ~/$f present$( [ "${f##*/}" = "credentials" ] || [ "${f##*/}" = "auth.json" ] || [ "${f##*/}" = ".netrc" ] && echo ' ⚠︎ contains secrets')"
@@ -116,7 +116,7 @@ for f in .claude.json .codex/config.toml .gemini/settings.json .cursor/mcp.json;
 done
 
 h "Apps whose data needs attention"
-check_app() { [ -d "/Applications/$1.app" ] && printf -- "- %s — %s\n" "$1" "$2"; }
+check_app() { [ -d "/Applications/$1.app" ] && printf -- "- %s, %s\n" "$1" "$2"; }
 check_app "TablePlus"        "export connections WITH passwords (Keychain)"
 check_app "Sequel Ace"       "export connections (Keychain)"
 check_app "DataGrip"         "settings sync; DB passwords in Keychain"
@@ -132,14 +132,14 @@ check_app "Google Chrome"    "profiles per person; sessions don't move"
 for app in /Applications/*.app; do
   case "$(basename "$app")" in
     PhpStorm.app|IntelliJ*|WebStorm.app|PyCharm*|GoLand.app|RubyMine.app|DataGrip.app|Rider.app)
-      echo "- $(basename "$app" .app) — settings sync: choose GET on the new Mac; DB passwords in Keychain" ;;
+      echo "- $(basename "$app" .app), settings sync: choose GET on the new Mac; DB passwords in Keychain" ;;
   esac
 done
 
 h "Next steps"
 cat <<'TXT'
-1. `bin/repo-report` — projects holding work that exists only here
-2. `bin/ssh-audit` — which keys are still used
-3. `bin/migrate` — build your plan
+1. `bin/repo-report`, projects holding work that exists only here
+2. `bin/ssh-audit`, which keys are still used
+3. `bin/migrate`, build your plan
 4. Read `docs/01-principles.md`
 TXT

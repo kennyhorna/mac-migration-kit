@@ -29,7 +29,7 @@ git for-each-ref refs/heads # same branches
 `bin/verify-copy --git ~/Code user@host Code` does this for every repo in a folder and prints only the differences. Expect two harmless classes of difference:
 
 - `.DS_Store` files
-- Files ignored through a **global** gitignore that isn't on the new Mac yet (`git config --global core.excludesfile`) — put that file in your dotfiles
+- Files ignored through a **global** gitignore that isn't on the new Mac yet (`git config --global core.excludesfile`). Put that file in your dotfiles
 
 ## Shell and environment
 
@@ -70,7 +70,7 @@ Then, per project type: run the test suite of 2–3 projects, start a dev server
 - Dock position and behaviour
 - Keyboard: modifier remapping, key repeat, custom shortcuts
 - Trackpad: tap to click, gestures
-- Privacy permissions: Accessibility, Screen Recording, Full Disk Access — each app that needs them
+- Privacy permissions: Accessibility, Screen Recording, Full Disk Access, for each app that needs them
 
 ## A habit worth keeping
 

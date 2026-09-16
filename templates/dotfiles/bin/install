@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# install — set up a Mac from this repo. Every step is idempotent; re-run until everything is green.
+# install: set up a Mac from this repo. Every step is idempotent; re-run until everything is green.
 #
 #   bin/install               run every step
 #   bin/install brew link     run specific steps

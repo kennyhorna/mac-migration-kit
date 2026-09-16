@@ -8,19 +8,19 @@ brew bundle --file=~/.dotfiles/Brewfile                     # on the new one
 brew bundle check --file=~/.dotfiles/Brewfile               # verify
 ```
 
-**Curate it before you use it.** A dump reflects years of experiments. Remove what you no longer use, and add the apps you installed by hand — check `/Applications` against `brew list --cask`, since hand-installed apps won't be in the dump.
+**Curate it before you use it.** A dump reflects years of experiments. Remove what you no longer use, and add the apps you installed by hand. Check `/Applications` against `brew list --cask`, since hand-installed apps won't be in the dump.
 
 Points that bite:
 
 - **Apps installed by hand** make `brew bundle` fail with "already an App at ...". Let Homebrew adopt them: `brew install --cask --adopt <name>`.
 - **Deprecated or removed formulae** stop a bundle run. Check yours: `brew info <formula> | head -2`.
-- **Taps that merged into Homebrew** fail to tap at all. If a tap's folder only contains a README, it's probably obsolete — remove it from the Brewfile.
+- **Taps that merged into Homebrew** fail to tap at all. If a tap's folder only contains a README, it's probably obsolete, so remove it from the Brewfile.
 - **App Store apps** need `mas` plus being signed in to the App Store: `mas list` gives you the ids.
 - **Global npm/cargo packages don't belong in a Brewfile**: they need their toolchains installed first. Put them in your install script after the toolchain step.
 
 ## Language toolchains
 
-Install the version manager from Homebrew, then the runtime, then global packages — in that order, in your install script.
+Install the version manager from Homebrew, then the runtime, then global packages, in that order, in your install script.
 
 | Language | Common setup | Migration notes |
 |---|---|---|
@@ -44,7 +44,7 @@ If you serve sites locally with Herd or Valet, capture more than the app:
 - **Which sites use a non-default PHP version** ("isolated" sites)
 - **Which sites are secured** (HTTPS)
 - **Your `php.ini` overrides** per version
-- **The default PHP version** — easily forgotten, and the cause of a confusing class of failures where Composer resolves for the wrong version
+- **The default PHP version**, easily forgotten, and the cause of a confusing class of failures where Composer resolves for the wrong version
 
 `bin/inventory` captures all of this into a snapshot, and `templates/dotfiles/bin/herd-restore` replays it. Watch for:
 
@@ -69,7 +69,7 @@ Before you start:
 - **Projects that run in Docker** should install inside their container, not on the host; they often need extensions the host doesn't have.
 - **`npm ci` requires a lockfile.** Fall back to `npm install` when there isn't one.
 
-Automate the sweep and log per project — you'll want to see which ones failed and why, rather than watch 20 installs scroll by.
+Automate the sweep and log the result per project, so you can see which ones failed and why instead of watching 20 installs scroll past.
 
 ## Local databases
 

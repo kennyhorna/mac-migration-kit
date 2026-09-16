@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# repo-report — which projects hold work that exists ONLY on this machine.
+# repo-report: which projects hold work that exists ONLY on this machine.
 #
 #   bin/repo-report [folder]        default: ~/Code
 #   bin/repo-report --csv [folder]  machine-readable
@@ -61,7 +61,7 @@ cat <<TXT
 $total projects · $at_risk hold work that exists only here (COPY)
 
   COPY   copy the folder; re-cloning would lose something
-  clone  clean and pushed — re-clone on the new Mac when you need it
+  clone  clean and pushed, re-clone on the new Mac when you need it
 
 Also consider: archive old projects with unique work into .tar.gz instead of carrying them,
 and check for .env files and local databases, which are never in git.

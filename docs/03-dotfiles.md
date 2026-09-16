@@ -1,6 +1,6 @@
 # Dotfiles: the part you keep forever
 
-A dotfiles repo turns "set up my Mac" into a command. You don't need a fancy one — a folder, some symlinks and an install script beat any framework.
+A dotfiles repo turns "set up my Mac" into a command. It doesn't need to be fancy: a folder, some symlinks and an install script are enough.
 
 For a well-explained example of the whole idea, see [A tour of my dotfiles](https://freek.dev/3054-a-tour-of-my-dotfiles)
 by Freek Van der Herten, which inspired the layout below.
@@ -110,7 +110,7 @@ defaults export com.apple.symbolichotkeys macos/symbolichotkeys.plist   # old Ma
 defaults import com.apple.symbolichotkeys macos/symbolichotkeys.plist   # new Mac
 ```
 
-**Modifier remapping** (Caps Lock → Control/Command) is stored **per keyboard**, keyed by the keyboard's vendor and product id — which differ between Macs. Copying the setting does nothing. Detect the keyboards present and write the mapping for each:
+**Modifier remapping** (Caps Lock → Control/Command) is stored **per keyboard**, keyed by the keyboard's vendor and product id, and those differ between Macs. Copying the setting does nothing. Detect the keyboards present and write the mapping for each:
 
 ```bash
 hidutil list | awk '$1 ~ /^0x/ && $1 != "0x0" && $4 == 1 && $5 == 6 {print $1, $2}' | sort -u

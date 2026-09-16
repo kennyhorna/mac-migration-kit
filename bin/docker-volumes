@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# docker-volumes — move named Docker volumes between machines.
+# docker-volumes: move named Docker volumes between machines.
 #
 #   bin/docker-volumes list                          volumes with sizes and whether they're in use
 #   bin/docker-volumes export <dir> <volume>...      one <volume>.tgz per volume
@@ -21,7 +21,7 @@ case "$cmd" in
     docker system df -v 2>/dev/null | awk '/^VOLUME NAME/{flag=1; next} /^$/{flag=0} flag {print $1, $NF}' |
       while read -r name size; do
         users=$(docker ps --filter "volume=$name" --format '{{.Names}}' | paste -sd, -)
-        printf "%-45s %10s  %s\n" "${name:0:45}" "$size" "${users:-—}"
+        printf "%-45s %10s  %s\n" "${name:0:45}" "$size" "${users:--}"
       done
     ;;
   export)
@@ -31,7 +31,7 @@ case "$cmd" in
     for volume in "$@"; do
       docker volume inspect "$volume" >/dev/null 2>&1 || { echo "  ! $volume: no such volume"; continue; }
       running=$(docker ps --filter "volume=$volume" --format '{{.Names}}' | paste -sd, -)
-      [ -n "$running" ] && { echo "  ! $volume: in use by $running — stop it first"; continue; }
+      [ -n "$running" ] && { echo "  ! $volume: in use by $running, stop it first"; continue; }
       docker run --rm -v "$volume":/volume:ro -v "$dir":/backup "$IMAGE" tar czf "/backup/$volume.tgz" -C /volume . \
         && echo "  + $volume → $dir/$volume.tgz ($(du -h "$dir/$volume.tgz" | cut -f1))"
     done

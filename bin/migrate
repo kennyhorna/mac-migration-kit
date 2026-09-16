@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-migrate — interactive planner. Asks what you use, writes a PLAN.md with only the steps that apply.
+migrate, interactive planner. Asks what you use, writes a PLAN.md with only the steps that apply.
 
   bin/migrate                 ask questions, write PLAN.md
   bin/migrate --answers a.json   reuse saved answers (written to .migration-answers.json each run)
@@ -181,7 +181,7 @@ def render(answers, out_path):
 
     blocks, total = [], 0
     for index, (phase, tasks) in enumerate(phases, 1):
-        lines = ["## Phase %d — %s" % (index, phase), ""]
+        lines = ["## Phase %d: %s" % (index, phase), ""]
         for number, task in enumerate(tasks, 1):
             total += 1
             lines.append(task.replace("- [ ] ", "- [ ] %d.%d " % (index, number), 1))
@@ -218,7 +218,7 @@ def main():
     elif args.answers:
         answers = json.load(open(args.answers))
     else:
-        print("A few questions — everything you don't use gets left out of the plan.")
+        print("A few questions, everything you don't use gets left out of the plan.")
         answers = {}
         for question in QUESTIONS:
             answers[question[0]] = ask(question)
@@ -226,7 +226,7 @@ def main():
     saved = os.path.join(os.getcwd(), ".migration-answers.json")
     json.dump(answers, open(saved, "w"), indent=2)
     total = render(answers, args.out)
-    print("\n\033[32m✓\033[0m %s — %d tasks (answers saved to %s)" % (args.out, total, os.path.basename(saved)))
+    print("\n\033[32m✓\033[0m %s, %d tasks (answers saved to %s)" % (args.out, total, os.path.basename(saved)))
     print("  next: bin/inventory, then work through the plan with `bin/progress --todo`")
 
 

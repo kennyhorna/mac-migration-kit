@@ -5,7 +5,7 @@ See [`docs/05-ai-tools.md`](../../../docs/05-ai-tools.md) for the reasoning.
 
 ```
 ai/
-├── AGENTS.md     your global instructions — symlinked into each tool
+├── AGENTS.md     your global instructions, symlinked into each tool
 ├── mcp.json      MCP servers, defined once, with ${VAR} references instead of secrets
 ├── skills/       skills/prompts you wrote
 └── settings/     per-tool settings worth versioning
@@ -17,7 +17,7 @@ ai/
 ln -sfn ~/.dotfiles/ai/AGENTS.md ~/.claude/CLAUDE.md
 ln -sfn ~/.dotfiles/ai/AGENTS.md ~/.codex/AGENTS.md
 ln -sfn ~/.dotfiles/ai/AGENTS.md ~/.gemini/GEMINI.md
-# Cursor and IDE assistants read their own rules files — point them at the same content
+# Cursor and IDE assistants read their own rules files; point them at the same content
 ```
 
 Some tools only create their config folder at first launch, so start each one once before linking.
@@ -45,7 +45,7 @@ Keep one definition and render it per tool. The shapes differ but the fields map
 ```
 
 - **Secrets stay as `${VAR}` references.** Values come from your environment or password manager.
-- **Absolute paths** (`${HOME}/...`) break if you reorganize folders during the migration — check them afterwards.
+- **Absolute paths** (`${HOME}/...`) break if you reorganize folders during the migration, so check them afterwards.
 - **Some tools read another tool's config** through a compatibility mode. Check before defining the same server twice; duplicates can shadow each other.
 
 ## Skills and prompts
